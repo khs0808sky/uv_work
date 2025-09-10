@@ -5,6 +5,7 @@
 - [2025-09-04](#2025-09-04)
 - [2025-09-05](#2025-09-05)
 - [2025-09-08](#2025-09-08)
+- [2025-09-09](#2025-09-09)
   
 <br><br><br>
 
@@ -285,4 +286,121 @@ MCP는 일반적으로 **LLM이나 AI 모델에서 여러 선택지를 기반으
 📅[목차로 돌아가기](#-목차)
 
 ---
+
+## 2025-09-09
+
+### LangGraph 미니 프로젝트: 사주 & 타로 간단 챗봇
+
+---
+
+#### 🔹 프로젝트 구조
+
+1. **State 정의**
+
+   * 사용자 입력(생년월일, 질문 등)
+   * 사주 결과 텍스트
+   * 타로 카드 텍스트
+   * 최종 응답
+
+2. **Node 설계**
+
+   * `get_saju`: 생년월일 기반 간단한 사주 해석
+   * `get_tarot`: 무작위 타로 카드 뽑기 & 의미 해석
+   * `combine_result`: 사주와 타로를 종합한 최종 리딩
+
+3. **Edge 설계**
+
+   * `START → get_saju → get_tarot → combine_result → END`
+
+---
+
+#### 🔹 코드 예시
+
+```python
+from langgraph.graph import StateGraph, START, END
+from typing_extensions import TypedDict
+
+# 1. 상태 정의
+class FortuneState(TypedDict):
+    birthdate: str
+    question: str
+    saju: str
+    tarot: str
+    result: str
+
+# 2. Node 함수
+def get_saju(state: FortuneState) -> dict:
+    # 간단한 사주 텍스트 (실제로는 DB나 API 활용 가능)
+    birth = state['birthdate']
+    saju_text = f"{birth}에 태어난 당신은 강한 의지와 직관력을 가진 타입입니다."
+    return {"saju": saju_text}
+
+def get_tarot(state: FortuneState) -> dict:
+    import random
+    tarot_cards = ["The Fool", "The Magician", "The Lovers", "Death", "Wheel of Fortune"]
+    card = random.choice(tarot_cards)
+    tarot_text = f"뽑은 카드는 {card}이며, 이는 새로운 시작과 변화를 의미합니다."
+    return {"tarot": tarot_text}
+
+def combine_result(state: FortuneState) -> dict:
+    summary = (
+        f"사주 해석: {state['saju']}\n"
+        f"타로 해석: {state['tarot']}\n\n"
+        f"총평: {state['question']}에 대해 내면의 직관을 믿고 새로운 기회를 잡으세요."
+    )
+    return {"result": summary}
+
+# 3. 그래프 구성
+graph = StateGraph(FortuneState)
+graph.add_node("get_saju", get_saju)
+graph.add_node("get_tarot", get_tarot)
+graph.add_node("combine_result", combine_result)
+
+graph.add_edge(START, "get_saju")
+graph.add_edge("get_saju", "get_tarot")
+graph.add_edge("get_tarot", "combine_result")
+graph.add_edge("combine_result", END)
+
+app = graph.compile()
+
+# 4. 실행
+state = {
+    "birthdate": "1995-05-10",
+    "question": "올해 연애운이 궁금해요"
+}
+result = app.invoke(state)
+print(result["result"])
+```
+
+---
+
+#### 🔹 실행 예시
+
+```
+사주 해석: 1995-05-10에 태어난 당신은 강한 의지와 직관력을 가진 타입입니다.
+타로 해석: 뽑은 카드는 The Lovers이며, 이는 새로운 시작과 변화를 의미합니다.
+
+총평: 올해 연애운이 궁금해요에 대해 내면의 직관을 믿고 새로운 기회를 잡으세요.
+```
+
+---
+
+#### 🔹 포인트
+
+1. **LangGraph를 활용한 단순 상태머신**
+   → START → 사주 → 타로 → 종합 → END 구조
+2. \*\*상태(State)\*\*로 모든 정보를 관리
+3. **Node**가 각각 독립 기능 담당
+4. **확장성**:
+
+   * 타로 카드 해석에 LLM API 붙이기
+   * 사주 계산 알고리즘 연동하기
+   * 사용자 질문 기반 세부 해석 강화 가능
+
+---
+
+📅[목차로 돌아가기](#-목차)
+
+---
+
 
